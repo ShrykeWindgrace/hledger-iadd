@@ -103,6 +103,7 @@ executable hledger-iadd
                      , optparse-applicative
                      , directory
                      , xdg-basedir
+                     , filepath
                      , unordered-containers
                      , free >= 4.12.4
                      , megaparsec >= 7.0 && <9.8
