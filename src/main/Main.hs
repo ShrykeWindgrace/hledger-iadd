@@ -33,6 +33,7 @@ import Control.Monad.Trans.Except (runExceptT)
 import Data.Functor.Identity (Identity(..), runIdentity)
 import Data.Maybe (fromMaybe, fromJust)
 import Data.Monoid (First(..), getFirst)
+import Data.Char (toLower)
 import qualified Data.Semigroup as Sem
 import Data.Text (Text)
 import qualified Data.Text as T
@@ -52,7 +53,7 @@ import System.Directory (getHomeDirectory)
 import System.Environment (lookupEnv)
 import System.Environment.XDG.BaseDir (getUserConfigFile)
 import System.Exit (exitFailure, exitSuccess)
-import System.IO (hPutStr, hPutStrLn, stderr)
+import System.IO (hPutStr, hPutStrLn, stderr, NewlineMode (outputNL), Newline (..), nativeNewlineMode, IOMode (AppendMode), hSetNewlineMode, withFile, nativeNewline)
 import qualified Text.Megaparsec as P
 import qualified Text.Megaparsec.Char as P
 
@@ -99,6 +100,7 @@ data AppState = AppState
   , _asMatchAlgo :: MatchAlgo
   , _asDialog :: DialogShown
   , _asInputHistory :: [Text]
+  , _asEOL :: Newline
   }
 
 makeLenses ''AppState
@@ -271,7 +273,7 @@ doNextStep useSelected = do
   case s of
     Left err -> asMessage .= err
     Right (Finished trans) -> do
-      liftIO $ addToJournal trans (as^.asFilename)
+      liftIO $ addToJournal (as ^. asEOL) trans (as^.asFilename)
       sugg <- liftIO $ suggest (as^.asJournal) (as^.asDateFormat) (DateQuestion "")
       asStep .= DateQuestion ""
       asJournal %= addTransactionEnd trans
@@ -343,8 +345,8 @@ setEdit :: Text -> Editor n -> Editor n
 setEdit content edit = edit & editContentsL .~ zipper
   where zipper = gotoEOL (textZipper [content] (Just 1))
 
-addToJournal :: HL.Transaction -> FilePath -> IO ()
-addToJournal trans path = appendFile path (T.unpack $ moveEmptyLine $ HL.showTransaction trans)
+addToJournal :: Newline -> HL.Transaction -> FilePath -> IO ()
+addToJournal nl trans path = withFile path AppendMode $ \h -> hSetNewlineMode h mode >> T.hPutStr h (moveEmptyLine $ HL.showTransaction trans)
   where
     -- showTransactionUnelided adds an empty line to the end of the transaction. We want
     -- the empty line to be at the start instead, to allow it to be added to a
@@ -352,6 +354,9 @@ addToJournal trans path = appendFile path (T.unpack $ moveEmptyLine $ HL.showTra
     moveEmptyLine :: Text -> Text
     moveEmptyLine = T.unlines . ("":) . init . T.lines
 
+    -- input from platform, force LF on output
+    mode :: NewlineMode
+    mode = nativeNewlineMode {outputNL = nl}
 --------------------------------------------------------------------------------
 -- Command line and config parsing
 --------------------------------------------------------------------------------
@@ -360,6 +365,7 @@ data CommonOptions f = CommonOptions
   { optLedgerFile :: f FilePath
   , optDateFormat :: f String
   , optMatchAlgo  :: f MatchAlgo
+  , optEOL :: f Newline
   }
 
 instance Sem.Semigroup (CommonOptions Maybe) where
@@ -370,17 +376,20 @@ instance Sem.Semigroup (CommonOptions Maybe) where
        { optLedgerFile = optLedgerFile opt1' <> optLedgerFile opt2'
        , optDateFormat = optDateFormat opt1' <> optDateFormat opt2'
        , optMatchAlgo = optMatchAlgo opt1' <> optMatchAlgo opt2'
+       , optEOL = optEOL opt1' <> optEOL opt2'
        }
 
 instance Monoid (CommonOptions Maybe) where
   mappend = (Sem.<>)
-  mempty = CommonOptions Nothing Nothing Nothing
+  mempty = CommonOptions Nothing Nothing Nothing Nothing
+
 
 optNatTrans :: (forall a. f a -> g a) -> CommonOptions f -> CommonOptions g
 optNatTrans nat opts = CommonOptions
   { optLedgerFile = nat $ optLedgerFile opts
   , optDateFormat = nat $ optDateFormat opts
   , optMatchAlgo = nat $ optMatchAlgo opts
+  , optEOL = nat $ optEOL opts
   }
 
 optFromJust :: CommonOptions Identity -> CommonOptions Maybe -> CommonOptions Identity
@@ -422,6 +431,18 @@ readMatchAlgo = eitherReader reader
       | str == "substrings" = return Substrings
       | otherwise = Left "Expected \"fuzzy\" or \"substrings\""
 
+readNL :: ReadM Newline
+readNL = eitherReader $ \s -> case toLower <$> s of
+  "lf" -> Right LF
+  "crlf" -> Right CRLF
+  "native" -> Right nativeNewline
+  _ -> Left s
+
+-- | Megaparsec parser for newline selector, used for config file parsing
+parseNL :: OParser Newline
+parseNL =  (P.string' "lf" *> pure LF)
+              <|> (P.string' "crlf" *> pure CRLF)
+              <|> (P.string' "native" *> pure nativeNewline)
 -- | Parser for our config file
 confParser :: CommonOptions Identity -> OptParser ConfOptions
 confParser def = fmap ConfOptions $ CommonOptions
@@ -435,6 +456,15 @@ confParser def = fmap ConfOptions $ CommonOptions
       )
       "string"
       parseMatchAlgo
+      )
+  <*> (Just <$> customOption "line-endings" nativeNewline "native"
+      ( "Line endings used to append entries to the journal\n"
+      <> "  - lf: use \\n aka LF\n"
+      <> "  - crlf: use \\r\\n aka CRLF\n"
+      <> "  - native: whatever ending the OS uses (default)\n"
+      )
+      "string"
+      parseNL
       )
 
   where matchAlgo = runIdentity (optMatchAlgo def)
@@ -476,6 +506,8 @@ cmdOptionParser = CmdLineOptions
             <> metavar "ENGINE"
             <> value Nothing
             <> help "Algorithm for account name completion. Possible values: \"fuzzy\", \"substrings\"")
+      <*> OA.option (Just <$> readNL)
+            (long "line-endings" <> metavar "EOL" <> value Nothing <> help "force line endings (native, LF, CRLF)")
       )
   <*> switch
         ( long "dump-default-config"
@@ -537,7 +569,8 @@ main = do
 
       let welcome = "Welcome! Press F1 (or Alt-?) for help. Exit with Ctrl-d."
           matchAlgo = runIdentity $ optMatchAlgo opts
-          as = AppState edit (DateQuestion "") journal (ctxList V.empty) sugg welcome path date matchAlgo NoDialog []
+          eol = runIdentity $ optEOL opts
+          as = AppState edit (DateQuestion "") journal (ctxList V.empty) sugg welcome path date matchAlgo NoDialog [] eol
 
       void $ defaultMain app as
 
