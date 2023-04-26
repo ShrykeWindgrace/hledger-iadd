@@ -49,10 +49,11 @@ import Options.Applicative
   ( ReadM, Parser, value, help, long, metavar, switch, helper, fullDesc, info
   , header, short, (<|>), eitherReader, execParser
   )
-import System.Directory (getHomeDirectory)
+import System.Directory (getHomeDirectory, getXdgDirectory, XdgDirectory(XdgConfig))
 import System.Environment (lookupEnv)
 import System.Environment.XDG.BaseDir (getUserConfigFile)
 import System.Exit (exitFailure, exitSuccess)
+import System.FilePath ((</>))
 import System.IO (hPutStr, hPutStrLn, stderr, NewlineMode (outputNL), Newline (..), nativeNewlineMode, IOMode (AppendMode), hSetNewlineMode, withFile, nativeNewline)
 import qualified Text.Megaparsec as P
 import qualified Text.Megaparsec.Char as P
@@ -409,13 +410,14 @@ defaultOptions home = CommonOptions
   { optLedgerFile = Identity (ledgerPath home)
   , optDateFormat = Identity "[[%y/]%m/]%d"
   , optMatchAlgo = Identity Substrings
+  , optEOL = Identity nativeNewline
   }
 
 ledgerPath :: FilePath -> FilePath
 ledgerPath home = home <> "/.hledger.journal"
 
 configPath :: IO FilePath
-configPath = getUserConfigFile "hledger-iadd" "config.conf"
+configPath = getXdgDirectory XdgConfig ( "hledger-iadd" </> "config.conf")
 
 -- | Megaparsec parser for MatchAlgo, used for config file parsing
 parseMatchAlgo :: OParser MatchAlgo
@@ -470,9 +472,8 @@ confParser def = fmap ConfOptions $ CommonOptions
   where matchAlgo = runIdentity (optMatchAlgo def)
 
 -- | IO Action to read and parse config file
-parseConfigFile :: IO ConfOptions
-parseConfigFile = do
-  path <- configPath
+parseConfigFile :: FilePath -> IO ConfOptions
+parseConfigFile path = do
   home <- getHomeDirectory
   let def = defaultOptions home
 
@@ -483,6 +484,10 @@ parseConfigFile = do
         putStr (P.errorBundlePretty err)
         exitFailure
       Right res' -> return res'
+
+parseGlobalConfigFile, parseLocalConfigFile :: IO ConfOptions
+parseGlobalConfigFile = configPath >>= parseConfigFile
+parseLocalConfigFile = parseConfigFile ".hledger-iadd.config.conf"
 
 -- | command line option parser
 cmdOptionParser :: Parser CmdLineOptions
@@ -542,13 +547,14 @@ main = do
     T.putStrLn (parserExample $ confParser defOpts)
     exitSuccess
 
-  confOpts <- parseConfigFile
+  globalConfOpts <- parseGlobalConfigFile
+  localConfOpts <- parseLocalConfigFile
 
   envOpts <- parseEnvVariables
 
   -- The order of precedence here is:
-  -- arguments > environment > config file
-  let opts = optFromJust defOpts $ cmdCommon cmdOpts <> envOpts <> confCommon confOpts
+  -- arguments > environment > local config file > global config file
+  let opts = optFromJust defOpts $ cmdCommon cmdOpts <> envOpts <> confCommon localConfOpts <> confCommon globalConfOpts
 
   date <- case parseDateFormat (T.pack $ runIdentity $ optDateFormat opts) of
     Left err -> do
