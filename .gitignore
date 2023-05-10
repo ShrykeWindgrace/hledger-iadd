@@ -7,3 +7,4 @@
 /.ghc.environment*
 .dir-locals.el
 /cabal.project.local
+/.hie
