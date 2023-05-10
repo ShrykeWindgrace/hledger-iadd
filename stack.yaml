@@ -8,3 +8,7 @@ extra-deps:
  - vty-windows-0.2.0.1
  - hledger-lib-1.32.2
 resolver: lts-21.25
+nix:
+    enable: true
+    packages:
+        - zlib
