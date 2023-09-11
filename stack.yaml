@@ -3,7 +3,7 @@ packages:
 extra-deps:
     - brick-1.5
     - hledger-lib-1.29.2
-resolver: lts-20.18
+resolver: lts-21.11
 nix:
     enable: true
     packages:
