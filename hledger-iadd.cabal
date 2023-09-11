@@ -42,7 +42,7 @@ extra-source-files:
 source-repository head
   type: git
   location: https://github.com/hpdeifel/hledger-iadd.git
-  
+
 library
   hs-source-dirs:      src
   exposed-modules:     Model
@@ -105,7 +105,7 @@ executable hledger-iadd
                      , unordered-containers
                      , free >= 4.12.4
                      , megaparsec >= 7.0 && <9.6
-  ghc-options:         -threaded -Wall -fdefer-typed-holes -fno-warn-name-shadowing
+  ghc-options:         -threaded -Wall -fdefer-typed-holes -fno-warn-name-shadowing -static -optl-static -optl-pthread -fPIC
 
 test-suite spec
   type:               exitcode-stdio-1.0
