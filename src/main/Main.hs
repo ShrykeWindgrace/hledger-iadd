@@ -27,9 +27,10 @@ import Graphics.Vty
   (Event(EvKey), Modifier(MCtrl,MMeta), Key(..), defAttr, black, white, green)
 
 import Control.Exception (SomeException, try)
-import Control.Monad (msum, when, void)
+import Control.Monad (msum, when)
 import Control.Monad.IO.Class (liftIO)
 import Control.Monad.Trans.Except (runExceptT)
+import Data.Functor
 import Data.Functor.Identity (Identity(..), runIdentity)
 import Data.Maybe (fromMaybe, fromJust)
 import Data.Monoid (First(..), getFirst)
@@ -51,7 +52,6 @@ import Options.Applicative
   )
 import System.Directory (getHomeDirectory, getXdgDirectory, XdgDirectory(XdgConfig))
 import System.Environment (lookupEnv)
-import System.Environment.XDG.BaseDir (getUserConfigFile)
 import System.Exit (exitFailure, exitSuccess)
 import System.FilePath ((</>))
 import System.IO (hPutStr, hPutStrLn, stderr, NewlineMode (outputNL), Newline (..), nativeNewlineMode, IOMode (AppendMode), hSetNewlineMode, withFile, nativeNewline)
@@ -236,7 +236,7 @@ reset :: EventM n AppState ()
 reset = do
   as <- get
   sugg <- liftIO $ suggest (as^.asJournal) (as^.asDateFormat) (DateQuestion "")
-  
+
   asStep .= DateQuestion ""
   asEditor %= clearEdit
   asContext .= ctxList V.empty
@@ -249,7 +249,7 @@ setContext = do
   as <- get
   newCtx <- liftIO $ context (as^.asJournal) (as^.asMatchAlgo) (as^.asDateFormat) (editText as) (as^.asStep)
   asContext %= listSimpleReplace (V.fromList newCtx)
-      
+
 
 editText :: AppState -> Text
 editText = T.concat . getEditContents . _asEditor
@@ -403,7 +403,7 @@ data CmdLineOptions = CmdLineOptions
   , cmdVersion :: Bool
   }
 
-data ConfOptions = ConfOptions { confCommon :: CommonOptions Maybe }
+newtype ConfOptions = ConfOptions { confCommon :: CommonOptions Maybe }
 
 defaultOptions :: FilePath -> CommonOptions Identity
 defaultOptions home = CommonOptions
@@ -421,8 +421,8 @@ configPath = getXdgDirectory XdgConfig ( "hledger-iadd" </> "config.conf")
 
 -- | Megaparsec parser for MatchAlgo, used for config file parsing
 parseMatchAlgo :: OParser MatchAlgo
-parseMatchAlgo =  (P.string "fuzzy" *> pure Fuzzy)
-              <|> (P.string "substrings" *> pure Substrings)
+parseMatchAlgo =  (P.string "fuzzy" $>  Fuzzy)
+              <|> (P.string "substrings" $> Substrings)
 
 -- | ReadM parser for MatchAlgo, used for command line option parsing
 readMatchAlgo :: ReadM MatchAlgo
@@ -442,9 +442,9 @@ readNL = eitherReader $ \s -> case toLower <$> s of
 
 -- | Megaparsec parser for newline selector, used for config file parsing
 parseNL :: OParser Newline
-parseNL =  (P.string' "lf" *> pure LF)
-              <|> (P.string' "crlf" *> pure CRLF)
-              <|> (P.string' "native" *> pure nativeNewline)
+parseNL =  (P.string' "lf" $>  LF)
+              <|> (P.string' "crlf" $> CRLF)
+              <|> (P.string' "native" $> nativeNewline)
 -- | Parser for our config file
 confParser :: CommonOptions Identity -> OptParser ConfOptions
 confParser def = fmap ConfOptions $ CommonOptions
