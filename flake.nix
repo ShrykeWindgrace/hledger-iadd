@@ -13,7 +13,7 @@
 
         haskellPackages = pkgs.haskellPackages.extend (final: prev: {
       #hledger = prev.hledger_1_22_2;
-      hledger-lib = prev.hledger-lib_1_33_1;
+      hledger-lib = prev.hledger-lib_1_34;
     });
 
         packageName = "hledger-iadd";
