@@ -40,6 +40,8 @@ import Data.Text (Text)
 import qualified Data.Text as T
 import qualified Data.Text.IO as T
 import Data.Text.Zipper (gotoEOL, textZipper)
+import Data.Time
+import Data.Time.Calendar.OrdinalDate (toOrdinalDate)
 import qualified Data.Vector as V
 import qualified Hledger as HL
 import qualified Hledger.Read.JournalReader as HL
@@ -565,8 +567,8 @@ main = do
 
   let path = runIdentity $ optLedgerFile opts
   journalContents <- T.readFile path
-
-  runExceptT (HL.parseAndFinaliseJournal HL.journalp HL.definputopts path journalContents) >>= \case
+  inputOpts <- mkInputOptions True True
+  runExceptT (HL.parseAndFinaliseJournal HL.journalp inputOpts path journalContents) >>= \case
     Left err -> hPutStrLn stderr err >> exitFailure
     Right journal -> do
       let edit = editorText EditorName (txt . T.concat) (Just 1) ""
@@ -592,3 +594,17 @@ expand = padBottom Max
 
 ctxList :: V.Vector e -> List Name e
 ctxList v = (if V.null v then id else listMoveTo 0) $ list ListName v 1
+
+
+mkInputOptions :: Bool -> Bool -> IO HL.InputOpts
+mkInputOptions useAuto useForecast = do
+    today <- localDay . zonedTimeToLocalTime <$> getZonedTime
+    let year = fst $ toOrdinalDate today
+    pure $ HL.definputopts {
+        HL.auto_ = useAuto,
+        HL.forecast_ = if useForecast
+            then
+                Just $ HL.DateSpan (Just $ HL.Exact $ fromGregorian year 1 1) (Just $ HL.Exact today)
+            else
+                Nothing
+        }
