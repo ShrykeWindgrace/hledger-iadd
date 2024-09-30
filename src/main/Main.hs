@@ -226,6 +226,7 @@ event (VtyEvent ev) = use asDialog >>= \case
       _ -> asDialog .= AbortDialog
     EvKey (KChar 'z') [MCtrl] -> doUndo
     EvKey KEnter [MMeta] -> doNextStep False
+    EvKey (KChar 'e') [MMeta] -> doNextStep False
     EvKey KEnter [] -> doNextStep True
     EvKey (KFun 1) [] -> asDialog .= myHelpDialog
     EvKey (KChar '?') [MMeta] -> asDialog .= myHelpDialog >> asMessage .= "Help"
