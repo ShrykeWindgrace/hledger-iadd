@@ -73,7 +73,7 @@ library
                      , transformers >= 0.3
                      , time >= 1.5
                      , vector
-                     , megaparsec >= 7.0 && <9.7
+                     , megaparsec >= 7.0 && <9.8
                      , containers
                      , optparse-applicative
                      , directory
@@ -106,7 +106,7 @@ executable hledger-iadd
                      , filepath
                      , unordered-containers
                      , free >= 4.12.4
-                     , megaparsec >= 7.0 && <9.7
+                     , megaparsec >= 7.0 && <9.8
   ghc-options:         -threaded -Wall -fdefer-typed-holes -fno-warn-name-shadowing
 
 test-suite spec
@@ -129,7 +129,7 @@ test-suite spec
                     , QuickCheck
                     , quickcheck-instances
                     , free >= 4.12.4
-                    , megaparsec >= 7.0 && <9.7
+                    , megaparsec >= 7.0 && <9.8
                     , text-zipper >= 0.10
   build-tool-depends: hspec-discover:hspec-discover ==2.*
   ghc-options:        -threaded -Wall -fdefer-typed-holes -fno-warn-name-shadowing
