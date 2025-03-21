@@ -15,12 +15,26 @@
       #hledger = prev.hledger_1_22_2;
       hledger-lib = prev.hledger-lib_1_40;
     });
+          packagePostOverrides = pkg: with pkgs.haskell.lib.compose; pkgs.lib.pipe pkg [
+        disableExecutableProfiling
+        disableLibraryProfiling
+        dontBenchmark
+        dontCoverage
+        dontDistribute
+        dontHaddock
+        dontHyperlinkSource
+        doStrip
+        enableDeadCodeElimination
+        justStaticExecutables
+
+        dontCheck
+      ];
 
         packageName = "hledger-iadd";
       in
       {
-        packages.${packageName} =
-          haskellPackages.callCabal2nix packageName self rec { };
+        packages.${packageName} = packagePostOverrides
+          (haskellPackages.callCabal2nix packageName self rec { });
         packages.default = self.packages.${system}.hledger-iadd;
 
         devShells.default = pkgs.mkShell {
