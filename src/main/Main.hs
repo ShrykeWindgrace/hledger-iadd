@@ -71,7 +71,7 @@ import View
 import Lens.Micro.TH
 
 import Data.Version (showVersion)
-import qualified Paths_hledger_iadd as Paths
+import qualified PackageInfo_hledger_iadd as Paths
 
 
 data Name = HelpName | ListName | EditorName | CommentName
