@@ -12,23 +12,23 @@
         pkgs = nixpkgs.legacyPackages.${system};
 
         haskellPackages = pkgs.haskellPackages.extend (final: prev: {
-      #hledger = prev.hledger_1_22_2;
-      hledger-lib = prev.hledger-lib_1_40;
-    });
-          packagePostOverrides = pkg: with pkgs.haskell.lib.compose; pkgs.lib.pipe pkg [
-        disableExecutableProfiling
-        disableLibraryProfiling
-        dontBenchmark
-        dontCoverage
-        dontDistribute
-        dontHaddock
-        dontHyperlinkSource
-        doStrip
-        enableDeadCodeElimination
-        justStaticExecutables
+          #hledger = prev.hledger_1_22_2;
+          hledger-lib = prev.hledger-lib_1_40;
+        });
+        packagePostOverrides = pkg: with pkgs.haskell.lib.compose; pkgs.lib.pipe pkg [
+          disableExecutableProfiling
+          disableLibraryProfiling
+          dontBenchmark
+          dontCoverage
+          dontDistribute
+          dontHaddock
+          dontHyperlinkSource
+          doStrip
+          enableDeadCodeElimination
+          justStaticExecutables
 
-        dontCheck
-      ];
+          dontCheck
+        ];
 
         packageName = "hledger-iadd";
       in
