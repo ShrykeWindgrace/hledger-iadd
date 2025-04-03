@@ -37,10 +37,9 @@
           (haskellPackages.callCabal2nix packageName self rec { });
         packages.default = self.packages.${system}.hledger-iadd;
 
-        devShells.default = pkgs.mkShell {
-          buildInputs = with pkgs; [
-          ];
-          inputsFrom = map (__getAttr "env") (__attrValues self.packages.${system});
+        devShells.default = (pkgs.mkShell.override { stdenv = pkgs.stdenvNoCC; }) {
+          #buildInputs = [ ];
+          #inputsFrom = map (__getAttr "env") (__attrValues self.packages.${system});
         };
         devShell = self.devShells.${system}.default;
       });
