@@ -18,13 +18,36 @@
         "type": "github"
       }
     },
+    "my-utils": {
+      "inputs": {
+        "flake-utils": [
+          "flake-utils"
+        ],
+        "nixpkgs": [
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1743756162,
+        "narHash": "sha256-UvPi00TlhAgxm+JbiC8BDUUOHG6kwZ8sATNziMa4O18=",
+        "owner": "ShrykeWindgrace",
+        "repo": "haskell-flake-utilities",
+        "rev": "37293272a670223e00198a5c90bd3de8ec327643",
+        "type": "github"
+      },
+      "original": {
+        "owner": "ShrykeWindgrace",
+        "repo": "haskell-flake-utilities",
+        "type": "github"
+      }
+    },
     "nixpkgs": {
       "locked": {
-        "lastModified": 1731816655,
-        "narHash": "sha256-55e1JMAuYvHZs9EICprWgJ4RmaWwDuSjzJ5K7S7zb6w=",
+        "lastModified": 1743689281,
+        "narHash": "sha256-y7Hg5lwWhEOgflEHRfzSH96BOt26LaYfrYWzZ+VoVdg=",
         "owner": "NixOS",
         "repo": "nixpkgs",
-        "rev": "0a14706530dcb90acecb81ce0da219d88baaae75",
+        "rev": "2bfc080955153be0be56724be6fa5477b4eefabb",
         "type": "github"
       },
       "original": {
@@ -37,6 +60,7 @@
     "root": {
       "inputs": {
         "flake-utils": "flake-utils",
+        "my-utils": "my-utils",
         "nixpkgs": "nixpkgs"
       }
     },
