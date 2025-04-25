@@ -19,7 +19,7 @@
         pkgs = nixpkgs.legacyPackages.${system};
 
         haskellPackages = pkgs.haskellPackages.extend (final: prev: {
-          hledger-lib = prev.hledger-lib_1_40;
+          hledger-lib = pkgs.haskell.lib.doJailbreak prev.hledger-lib_1_41;
         });
 
         packageName = "hledger-iadd";
