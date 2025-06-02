@@ -34,5 +34,6 @@
           inputsFrom = map (__getAttr "env") (__attrValues self.packages.${system});
         };
         devShell = self.devShells.${system}.default;
+        formatter = pkgs.nixpkgs-fmt;
       });
 }
