@@ -569,7 +569,8 @@ main = do
   let path = runIdentity $ optLedgerFile opts
   journalContents <- T.readFile path
   inputOpts <- mkInputOptions True True
-  runExceptT (HL.parseAndFinaliseJournal HL.journalp inputOpts path journalContents) >>= \case
+  runExceptT (HL.parseAndFinaliseJournal (HL.journalp inputOpts) inputOpts path journalContents) >>= \case
+
     Left err -> hPutStrLn stderr err >> exitFailure
     Right journal -> do
       let edit = editorText EditorName (txt . T.concat) (Just 1) ""
